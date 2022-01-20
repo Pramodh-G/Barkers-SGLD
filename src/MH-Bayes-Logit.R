@@ -1,4 +1,6 @@
 # A bayesian logistic regression using the titanic dataset using MH algo.
+set.seed(42)
+library(mvtnorm)
 
 titanic <- read.csv("https://dvats.github.io/assets/titanic.csv")
 y <- titanic[, 1]
@@ -7,7 +9,6 @@ X <- as.matrix(titanic[, -1])
 log_posterior <- function(beta)
 {
     temp <- (1 - y) * X
-
     -sum(beta^2) / 2 - sum(log(1 + exp(-X %*% beta))) - sum(temp %*% beta)
 }
 
@@ -23,7 +24,7 @@ mh <- function(y, X, N = 1e4, prop.sd = 0.35)
 
     for (i in 2:N)
     {
-        prop <- rnorm(p, mean = beta, sd = prop.sd)
+        prop <- t( rmvnorm(1, mean = beta, sigma = prop.sd))
 
         alpha <- log_posterior(prop) - log_posterior(beta)
 
@@ -41,7 +42,9 @@ mh <- function(y, X, N = 1e4, prop.sd = 0.35)
     return(beta.mat)
 }
 
-chain <- mh(y, X, N = 1e5 , prop.sd = 0.0065)
+pilot <- mh(y, X, N = 1e5, prop.sd = 3.5e-5 * diag(dim(X)[2]))
+sigma_est <- cov(pilot)
+chain <- mh(y, X, N = 1e5, prop.sd = 1.3 * sigma_est)
 
 # diagnostics.
 plot.ts(chain)
