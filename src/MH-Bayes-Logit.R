@@ -14,13 +14,10 @@ log_posterior <- function(beta)
 mh <- function(y, X, N = 1e4, prop.sd = 0.35)
 {
     p <- dim(X)[2]
-    # one.minus.yx <- (1 - y) * X
 
     foo <- glm(y ~ X - 1, family = binomial("logit"))$coef
     beta <- as.matrix(foo, ncol = 1)
-    # print(as.numeric(beta))
     beta.mat <- matrix(0, nrow = N, ncol = p)
-    # print(beta.mat)
     beta.mat[1, ] <- as.numeric(beta)
     accept <- 0
 

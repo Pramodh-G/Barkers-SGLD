@@ -1,6 +1,13 @@
 # A bayesian logistic regression using the titanic dataset and MALA proposals.
+# using a vector prop.sd(diagonal covariance proposal) leads to the standard MALA algorithm which does not
+# allow varying levels of step sizes.
+
+# Here, we use a preconditioning matrix (covariance matrix after a pilot run) M to allow for different step sizes.
 
 set.seed(42)
+library(mvtnorm)
+
+
 titanic <- read.csv("https://dvats.github.io/assets/titanic.csv")
 y <- titanic[, 1]
 X <- as.matrix(titanic[, -1])
@@ -16,25 +23,28 @@ grad_log_posterior <- function(beta)
 {
     temp <- (1 - y) * X
     prod <- X %*% beta
-    denom <- as.vector( 1 / (1 + exp(prod)) )
+    denom <- as.vector(1 / (1 + exp(prod)))
     -beta - colSums(temp) + colSums(X * denom)
 }
 
-mala <- function(y, X, N = 1e4, prop.sd = 0.35)
+mala <- function(y, X, N = 1e4, h = 0.35, M)
 {
     p <- dim(X)[2]
 
     foo <- glm(y ~ X - 1, family = binomial("logit"))$coef
     beta <- as.matrix(foo, ncol = 1)
-    # print(as.numeric(beta))
     beta.mat <- matrix(0, nrow = N, ncol = p)
-    # print(beta.mat)
     beta.mat[1, ] <- as.numeric(beta)
+
+   # print(dim(grad_log_posterior(beta)))
+   # print(dim(beta))
+   # print(dim(rmvnorm(1, mean = numeric(p), sigma = eps)))
     accept <- 0
 
     for (i in 2:N)
     {
-        prop <- beta + prop.sd^2 * grad_log_posterior(beta) + rnorm(p, mean = 0, sd = prop.sd)
+        prop <- beta + (h^2 * M %*% grad_log_posterior(beta)) / 2 + h * t(rmvnorm(1, mean = numeric(p), sigma = M))
+        # prop <- beta + (eps * grad_log_posterior(beta)) / 2 + rnorm(p, mean = 0, sd = eps)
 
         alpha <- log_posterior(prop) - log_posterior(beta)
 
@@ -48,11 +58,12 @@ mala <- function(y, X, N = 1e4, prop.sd = 0.35)
     }
 
     print(paste("acceptance: ", accept / N))
-    print(accept)
     return(beta.mat)
 }
 
-chain <- mala(y, X, N = 1e3, prop.sd = 0.009)
+pilot <- mala(y, X, N = 1e5, h = 2.9e-3, M = diag(dim(X)[2]))
+sigma_est <- cov(pilot)
+chain <- mala(y, X, N = 1e5, h = 0.85, M = sigma_est)
 
 # diagnostics.
 plot.ts(chain)
