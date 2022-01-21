@@ -26,7 +26,10 @@ grad_log_posterior <- function(beta)
     denom <- as.vector(1 / (1 + exp(prod)))
     -beta - colSums(temp) + colSums(X * denom)
 }
-
+gradient_step <- function(beta, h, M)
+{
+    beta + h^2 * M %*% grad_log_posterior(beta) / 2
+}
 mala <- function(y, X, N = 1e4, h = 0.35, M)
 {
     p <- dim(X)[2]
@@ -43,10 +46,10 @@ mala <- function(y, X, N = 1e4, h = 0.35, M)
 
     for (i in 2:N)
     {
-        prop <- beta + (h^2 * M %*% grad_log_posterior(beta)) / 2 + h * t(rmvnorm(1, mean = numeric(p), sigma = M))
+        prop <-  gradient_step(beta, h, M) + h * t(rmvnorm(1, mean = numeric(p), sigma = M))
         # prop <- beta + (eps * grad_log_posterior(beta)) / 2 + rnorm(p, mean = 0, sd = eps)
+        alpha <- log_posterior(prop) - log_posterior(beta) + dmvnorm(t(beta), mean =gradient_step(prop, h, M), sigma = h^2 * M, log = TRUE) - dmvnorm(t(prop), mean = gradient_step(beta, h, M), sigma = h^2 * M, log = TRUE)
 
-        alpha <- log_posterior(prop) - log_posterior(beta)
 
         if (log(runif(1)) < alpha)
         {
@@ -61,9 +64,9 @@ mala <- function(y, X, N = 1e4, h = 0.35, M)
     return(beta.mat)
 }
 
-pilot <- mala(y, X, N = 1e5, h = 2.9e-3, M = diag(dim(X)[2]))
+pilot <- mala(y, X, N = 1e5, h = 3.5e-3, M = diag(dim(X)[2]))
 sigma_est <- cov(pilot)
-chain <- mala(y, X, N = 1e5, h = 0.85, M = sigma_est)
+chain <- mala(y, X, N = 1e5, h = 1.2, M = sigma_est)
 
 # diagnostics.
 plot.ts(chain)
