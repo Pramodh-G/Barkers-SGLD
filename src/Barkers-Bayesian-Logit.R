@@ -26,11 +26,8 @@ grad_log_posterior <- function(beta)
     denom <- as.vector(1 / (1 + exp(prod)))
     -beta - colSums(temp) + colSums(X * denom)
 }
-gradient_step <- function(beta, h, M)
-{
-    beta + h^2 * M %*% grad_log_posterior(beta) / 2
-}
-mala <- function(y, X, N = 1e4, h = 0.35, M)
+
+barker <- function(y, X, N = 1e3, prop.sd = 0.35)
 {
     p <- dim(X)[2]
 
@@ -39,13 +36,25 @@ mala <- function(y, X, N = 1e4, h = 0.35, M)
     beta.mat <- matrix(0, nrow = N, ncol = p)
     beta.mat[1, ] <- as.numeric(beta)
 
+   # print(dim(grad_log_posterior(beta)))
+   # print(dim(beta))
+   # print(dim(rmvnorm(1, mean = numeric(p), sigma = eps)))
     accept <- 0
 
     for (i in 2:N)
     {
-        prop <-  gradient_step(beta, h, M) + h * t(rmvnorm(1, mean = numeric(p), sigma = M))
-        alpha <- log_posterior(prop) - log_posterior(beta) + dmvnorm(t(beta), mean =gradient_step(prop, h, M), sigma = h^2 * M, log = TRUE) - dmvnorm(t(prop), mean = gradient_step(beta, h, M), sigma = h^2 * M, log = TRUE)
+        # prop <-  gradient_step(beta, h, M) + h * t(rmvnorm(1, mean = numeric(p), sigma = M))
+        grad_beta <- grad_log_posterior(beta)
 
+        z <- rnorm(p, mean = 0, sd = prop.sd)
+        prob_invert <- 1 / (1 + exp(-z * grad_log_posterior(beta)))
+        inv_or_not <- (runif(p) < prob_invert)
+        b <- 2 * inv_or_not - 1
+        prop <- beta + z * b
+
+        grad_prop <- grad_log_posterior(prop)
+
+        alpha <- log_posterior(prop) - log_posterior(beta) - sum(log1p(exp( grad_prop * (prop - beta) ))) + sum(log1p(exp( grad_beta * (beta - prop) )))
 
         if (log(runif(1)) < alpha)
         {
@@ -60,9 +69,11 @@ mala <- function(y, X, N = 1e4, h = 0.35, M)
     return(beta.mat)
 }
 
-pilot <- mala(y, X, N = 1e4, h = 3.5e-3, M = diag(dim(X)[2]))
-sigma_est <- cov(pilot)
-chain <- mala(y, X, N = 1e4, h = 1.2, M = sigma_est)
+chain <- barker(y, X, N = 1e5, prop.sd = 4.5e-3)
+sigma_est <- diag(cov(chain))
+chain <- barker(y, X, N = 1e5, prop.sd = 5 * sigma_est)
+# nasty surprises on increasing N. Maybe needs more samples to explore space. All of a sudden drop in acceptance.
+
 
 # diagnostics.
 plot.ts(chain)
