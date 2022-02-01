@@ -1,13 +1,52 @@
-# A bayesian logistic regression using the titanic dataset and MALA proposals.
-# using a vector prop.sd(diagonal covariance proposal) leads to the standard MALA algorithm which does not
-# allow varying levels of step sizes.
-
-# Here, we use a preconditioning matrix (covariance matrix after a pilot run) M to allow for different step sizes.
-
 set.seed(42)
 library(mvtnorm)
 
+# generate points from a N(0, 1) distribution using barker's proposal.
+mu  <- 0
+sigma <- 1
 
+# iters
+N <- 1e4
+h <- 2
+samples <- numeric(N)
+samples[1] <- 4.0
+accept <- 0
+
+for (i in 2:N) {
+    x <- samples[i - 1]
+    z <- rnorm(1, mean = 0, sd = h)
+    p <- 1 / (1 + exp(z * x))
+    # print(p)
+    b <- -1
+    if(runif(1) < p)
+    {
+        b <- 1
+    }
+    prop <- x + b * z
+
+    log_alpha <- (-prop^2 / 2) - (-samples[i - 1]^2) / 2 - log1p(exp( (prop - x) * (-prop) )) + log1p(exp( (x - prop) * (-x) ))
+    if(log(runif(1)) < log_alpha)
+    {
+        samples[i] <- prop
+        accept <- accept + 1
+    }
+    else
+    {
+       samples[i] <- x
+    }
+}
+
+print(accept / N)
+plot.ts(samples)
+acf(samples)
+x <- seq(-5, 5, 0.01)
+plot(x, dnorm(x), type="l", col="blue")
+lines(density(samples), col = "red")
+
+
+# A bayesian logistic regression using the titanic dataset and barker's proposals.
+# using a vector prop.sd(diagonal covariance proposal) leads to the standard barker's algorithm which does not
+# allow varying levels of step sizes.
 titanic <- read.csv("https://dvats.github.io/assets/titanic.csv")
 y <- titanic[, 1]
 X <- as.matrix(titanic[, -1])
@@ -71,7 +110,7 @@ barker <- function(y, X, N = 1e3, prop.sd = 0.35)
 
 chain <- barker(y, X, N = 1e5, prop.sd = 4.5e-3)
 sigma_est <- diag(cov(chain))
-chain <- barker(y, X, N = 1e5, prop.sd = 5 * sigma_est)
+chain <- barker(y, X, N = 1e5, prop.sd = 4 * sigma_est)
 # nasty surprises on increasing N. Maybe needs more samples to explore space. All of a sudden drop in acceptance.
 
 

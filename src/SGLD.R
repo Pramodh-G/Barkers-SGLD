@@ -1,11 +1,31 @@
+set.seed(42)
+library(mvtnorm)
+
+# SGLD for a single dimensional normal distribution
+mu  <- 0
+sigma <- 1
+
+# iters
+N <- 1e4
+h <- 0.04
+samples <- numeric(N)
+samples[1] <- 4.0
+
+
+for (i in 2:N) {
+    samples[i] <- samples[i - 1] - h * samples[i - 1] / 2 + rnorm(1)*sqrt(h)
+}
+
+x <- seq(-5, 5, 0.01)
+plot(x, dnorm(x), type="l", col="red")
+lines(density(samples))
+
+
 # A bayesian logistic regression using the titanic dataset and MALA proposals.
 # using a vector prop.sd(diagonal covariance proposal) leads to the standard MALA algorithm which does not
 # allow varying levels of step sizes.
 
 # Here, we use a preconditioning matrix (covariance matrix after a pilot run) M to allow for different step sizes.
-
-set.seed(42)
-library(mvtnorm)
 
 
 titanic <- read.csv("https://dvats.github.io/assets/titanic.csv")
