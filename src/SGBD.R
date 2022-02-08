@@ -62,6 +62,7 @@ barker <- function(y, X, N = 1e3, prop.sd = 0.35)
         inv_or_not <- (runif(p) < prob_invert)
         b <- 2 * inv_or_not - 1
         beta.mat[i, ] <- beta + z * b
+        beta <- beta.mat[i, i]
     }
 
     return(beta.mat)
@@ -80,11 +81,11 @@ barker_bim <- function(y, X, N = 1e3, prop.sd = 0.35)
     for (i in 2:N)
     {
         z <- rnorm(p, mean = (sqrt(1 - prop.sd^2)), sd = prop.sd)
-        for(i in 1:p)
+        for(k in 1:p)
         {
             if(runif(1) < 0.5)
             {
-                z[i] <- -z[i]
+                z[k] <- -z[k]
             }
         }
 
