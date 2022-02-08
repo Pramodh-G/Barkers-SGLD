@@ -8,18 +8,33 @@ sigma <- 1
 # iters
 N <- 1e4
 h <- 0.04
+h_bim <- 1
 samples <- numeric(N)
+samples_bim <- numeric(N)
 samples[1] <- 4.0
+samples_bim[1] <- 4.0
 
 
 for (i in 2:N) {
     samples[i] <- samples[i - 1] - h * samples[i - 1] / 2 + rnorm(1)*sqrt(h)
 }
 
+for (i in 2:N) {
+    z <- rnorm(1, mean = sqrt(1 - h_bim), sd = sqrt(h_bim))
+    if(runif(1) < 0.5)
+    {
+        z <- -z
+    }
+    samples_bim[i] <- samples_bim[i - 1] - h_bim * samples_bim[i - 1] / 2 + z
+}
+
 x <- seq(-5, 5, 0.01)
 plot(x, dnorm(x), type="l", col="red")
 lines(density(samples))
 
+plot(x, dnorm(x), type="l", col="red")
+lines(density(samples_bim))
+plot.ts(samples_bim)
 
 # A bayesian logistic regression using the titanic dataset and MALA proposals.
 # using a vector prop.sd(diagonal covariance proposal) leads to the standard MALA algorithm which does not
