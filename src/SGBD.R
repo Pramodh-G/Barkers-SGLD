@@ -80,10 +80,14 @@ barker_bim <- function(y, X, N = 1e3, prop.sd = 0.35)
     for (i in 2:N)
     {
         z <- rnorm(p, mean = (sqrt(1 - prop.sd^2)), sd = prop.sd)
-        if(runif(1) < 0.5)
+        for(i in 1:p)
         {
-            z <- -z
+            if(runif(1) < 0.5)
+            {
+                z[i] <- -z[i]
+            }
         }
+
         prob_invert <- 1 / (1 + exp(-z * grad_log_posterior(beta)))
         inv_or_not <- (runif(p) < prob_invert)
         b <- 2 * inv_or_not - 1
