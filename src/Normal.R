@@ -4,7 +4,7 @@ set.seed(42)
 mu <- 0
 sd <- 1
 
-N <- 1e7
+N <- 1e6
 x <- seq(-5 * sd + mu, 5 * sd + mu, 0.1)
 
 # BARKER METHODS
