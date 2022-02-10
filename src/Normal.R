@@ -29,12 +29,16 @@ x <- seq(-5 * sd + mu, 5 * sd + mu, 0.1)
 # lines(x, dnorm(x, mean = mu, sd = sd), col = "red")
 
 #MH Methods
-result <- mh_normal(N = N, h = 2.5, mu = mu, sd = sd, dist = "normal")
-chain_mh <- result$chain
-accept_mh <- result$accept
-print(accept_mh)
+# result <- mh_normal(N = N, h = 2.5, mu = mu, sd = sd, dist = "normal")
+# chain_mh <- result$chain
+# accept_mh <- result$accept
+# print(accept_mh)
 
-acf(chain_mh)
+# Load Pre saved chain
+chain_mh_load <- readRDS("variables/normal-mh.rds")
+
+
+acf(chain_mh_load)
 # plot.ts(chain_mh)
-plot(density(chain_mh), col = "blue")
+plot(density(chain_mh_load), col = "blue")
 lines(x, dnorm(x, mean = mu, sd = sd), col = "red")

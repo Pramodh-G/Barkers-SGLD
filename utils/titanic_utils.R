@@ -20,8 +20,13 @@ grad_log_posterior <- function(beta)
     -beta - colSums(temp) + colSums(X * denom)
 }
 
+gradient_step <- function(beta, h)
+{
+    beta + h^2 * grad_log_posterior(beta) / 2
+}
+
 ######### Barker
-barker_titanic <- function(y, X, N = 1e3, h = 0.35, dist = "normal")
+barker_titanic <- function(y, X, N = 1e3, h = 0.6, dist = "normal")
 {
     p <- dim(X)[2]
 
@@ -37,7 +42,7 @@ barker_titanic <- function(y, X, N = 1e3, h = 0.35, dist = "normal")
         grad_beta <- grad_log_posterior(beta)
 
         z <- samp_z(n = p, h = h, dist = dist)
-        prob_invert <- 1 / (1 + exp(-z * grad_log_posterior(beta)))
+        prob_invert <- 1 / (1 + exp(-z * grad_beta))
         inv_or_not <- (runif(p) < prob_invert)
         b <- 2 * inv_or_not - 1
         prop <- beta + z * b
@@ -75,7 +80,7 @@ sgbd_titanic <- function(y, X, N = 1e3, h = 0.35, dist = "normal")
         inv_or_not <- (runif(p) < prob_invert)
         b <- 2 * inv_or_not - 1
         beta.mat[i, ] <- beta + z * b
-        beta <- beta.mat[i, i]
+        beta <- beta.mat[i, ]
     }
 
     return(beta.mat)
@@ -83,7 +88,7 @@ sgbd_titanic <- function(y, X, N = 1e3, h = 0.35, dist = "normal")
 
 ##### LANGEVIN
 
-sgld <- function(y, X, N = 1e3, h = 0.35, dist = "normal")
+sgld_titanic <- function(y, X, N = 1e3, h = 0.35, dist = "normal")
 {
     p <- dim(X)[2]
     foo <- glm(y ~ X - 1, family = binomial("logit"))$coef
@@ -102,9 +107,39 @@ sgld <- function(y, X, N = 1e3, h = 0.35, dist = "normal")
     return(beta.mat)
 }
 
-#TODO: IMPLEMENT MALA ON THIS!!!!
+mala_titanic <- function(y, X, N = 1e4, h = 0.35)
+{
+    p <- dim(X)[2]
+
+    foo <- glm(y ~ X - 1, family = binomial("logit"))$coef
+    beta <- as.matrix(foo, ncol = 1)
+    beta.mat <- matrix(0, nrow = N, ncol = p)
+    beta.mat[1, ] <- as.numeric(beta)
+
+    accept <- 0
+
+    for (i in 2:N)
+    {
+        M <- diag(p)
+        prop <-  gradient_step(beta, h) + h * t(rmvnorm(1, mean = numeric(p), sigma = h^2 * M))
+        alpha <- log_posterior(prop) - log_posterior(beta) + dmvnorm(t(beta), mean =gradient_step(prop, h), sigma = h^2 * M, log = TRUE) - dmvnorm(t(prop), mean = gradient_step(beta, h), sigma = h^2 * M, log = TRUE)
+
+
+        if (log(runif(1)) < alpha)
+        {
+            beta <- prop
+            accept <- accept + 1
+        }
+
+        beta.mat[i, ] <- beta
+    }
+
+    ret <- list(chain = beta.mat, accept = accept / N)
+    return(ret)
+}
+
 ###### METROPOLIS- HASTINGS
-mh <- function(y, X, N = 1e4, prop.sd = 0.35, dist = "normal")
+mh_titanic <- function(y, X, N = 1e4, h = 0.35, dist = "normal")
 {
     p <- dim(X)[2]
 
@@ -116,10 +151,9 @@ mh <- function(y, X, N = 1e4, prop.sd = 0.35, dist = "normal")
 
     for (i in 2:N)
     {
-        prop <- beta + samp_z(n = p, h = h, dist = dist)
-
+        z <- samp_z(n = p, h = h, dist = dist)
+        prop <- beta + z
         alpha <- log_posterior(prop) - log_posterior(beta)
-
         if (log(runif(1)) < alpha)
         {
             beta <- prop
@@ -129,5 +163,6 @@ mh <- function(y, X, N = 1e4, prop.sd = 0.35, dist = "normal")
         beta.mat[i, ] <- beta
     }
 
-    ret <- list(chain = beta.mat, accept <- accept/N)
+    ret <- list(chain = beta.mat, accept = accept / N)
+    return(ret)
 }

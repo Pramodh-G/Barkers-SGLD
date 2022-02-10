@@ -42,9 +42,9 @@ mh <- function(y, X, N = 1e4, prop.sd = 0.35)
     return(beta.mat)
 }
 
-pilot <- mh(y, X, N = 1e5, prop.sd = 3.5e-5 * diag(dim(X)[2]))
+pilot <- mh(y, X, N = 1.5e5, prop.sd = 3.5e-5 * diag(dim(X)[2]))
 sigma_est <- cov(pilot)
-chain <- mh(y, X, N = 1e5, prop.sd = 1.3 * sigma_est)
+chain <- mh(y, X, N = 1.5e5, prop.sd = 1.3 * sigma_est)
 
 # diagnostics.
 plot.ts(chain)
