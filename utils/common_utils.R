@@ -1,4 +1,6 @@
-samp_z <- function(n=1, h = 0.2, dist = "normal")
+library("rmutil")
+
+samp_z <- function(n=1, h = 0.2, dof = 1, dist = "normal")
 {
    ret <- rnorm(n)
    if(dist == "normal")
@@ -18,10 +20,13 @@ samp_z <- function(n=1, h = 0.2, dist = "normal")
       weight <- 2 * invert_or_not - 1
       ret <- ret * weight
    }
+   else if (dist == "laplace") {
+       ret <- rlaplace(n, s = h)
+   }
    return(ret)
 }
 
-log_proposal_dist <- function(x, mean = 0, h = 1, dist = "normal")
+log_proposal_dist <- function(x, mean = 0, h = 1, dof = 1, dist = "normal")
 {
     if(dist == "normal")
     {
@@ -35,6 +40,9 @@ log_proposal_dist <- function(x, mean = 0, h = 1, dist = "normal")
             quit()
         }
         ret <- log(0.5 * ( dnorm(x, mean = mean - sqrt(1 - h^2), sd = h) + dnorm(x, mean = mean + sqrt(1 - h^2), sd = h) ))
+    }
+    else if (dist == "laplace") {
+        ret <- dlaplace(x, mean = mean, s = h, log = TRUE)
     }
     return(ret)
 }

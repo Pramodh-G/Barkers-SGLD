@@ -4,7 +4,7 @@ set.seed(42)
 mu <- 0
 sd <- 1
 
-N <- 1e6
+N <- 1e5
 x <- seq(-5 * sd + mu, 5 * sd + mu, 0.1)
 
 # BARKER METHODS
@@ -21,12 +21,12 @@ x <- seq(-5 * sd + mu, 5 * sd + mu, 0.1)
 # accept_mala <- result$accept
 # print(accept_mala)
 
-# chain_sgld <- sgld_normal(N = N, h = 1.4, mu = mu, sd = sd, dist = "normal")
+chain_sgld <- sgld_normal(N = N, h = 2, mu = mu, sd = sd, dist = "laplace")
 
-# acf(chain_mala)
-# plot.ts(chain_mala)
-# plot(density(chain_mala), col = "blue")
-# lines(x, dnorm(x, mean = mu, sd = sd), col = "red")
+acf(chain_sgld)
+plot.ts(chain_sgld)
+plot(density(chain_sgld), col = "blue")
+lines(x, dnorm(x, mean = mu, sd = sd), col = "red")
 
 #MH Methods
 # result <- mh_normal(N = N, h = 2.5, mu = mu, sd = sd, dist = "normal")
@@ -42,3 +42,4 @@ acf(chain_mh_load)
 # plot.ts(chain_mh)
 plot(density(chain_mh_load), col = "blue")
 lines(x, dnorm(x, mean = mu, sd = sd), col = "red")
+lines(density(chain_sgld), col = "green")
