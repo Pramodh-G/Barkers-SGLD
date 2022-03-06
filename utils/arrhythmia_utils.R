@@ -153,11 +153,6 @@ barker_aryt <- function(y, X, N = 1e3, h = 0.6, dist = "normal")
         prob_invert <- 1 / (1 + exp(-z * grad_beta))
         inv_or_not <- (runif(p) < prob_invert)
         b <- 2 * inv_or_not - 1
-        if(i %% 1000 == 0)
-        {
-            print(z)
-            print(b)
-        }
         prop <- beta + z * b
 
         grad_prop <- grad_log_posterior(prop, X, y)
@@ -192,12 +187,17 @@ sgbd_aryt <- function(y, X, N = 1e3, h = 0.35, minibatch_size = 452, dist = "nor
     beta.mat <- matrix(0, nrow = N, ncol = p)
     beta.mat[1, ] <- as.numeric(beta)
 
+    X_mini <- X
+    y_mini <- y
 
     for (i in 2:N)
     {
-        rand_perm <- sample(dataset_size)[1:minibatch_size]
-        X_mini <- X[rand_perm, ]
-        y_mini <- y[rand_perm]
+        if(minibatch_size < 452)
+        {
+            rand_perm <- sample(dataset_size)[1:minibatch_size]
+            X_mini <- X[rand_perm, ]
+            y_mini <- y[rand_perm]
+        }
         z <- samp_z(n = p, h = h, dist = dist)
         prob_invert <- 1 / (1 + exp(-z * grad_log_posterior(beta, X_mini, y_mini)))
         inv_or_not <- (runif(p) < prob_invert)
@@ -222,12 +222,17 @@ sgld_aryt <- function(y, X, N = 1e3, h = 0.35, minibatch_size = 452, dist = "nor
     beta.mat <- matrix(0, nrow = N, ncol = p)
     beta.mat[1, ] <- as.numeric(beta)
 
+    X_mini <- X
+    y_mini <- y
 
     for (i in 2:N)
     {
-        rand_perm <- sample(dataset_size)[1:minibatch_size]
-        X_mini <- X[rand_perm, ]
-        y_mini <- y[rand_perm]
+        if(minibatch_size < 452)
+        {
+            rand_perm <- sample(dataset_size)[1:minibatch_size]
+            X_mini <- X[rand_perm, ]
+            y_mini <- y[rand_perm]
+        }
         z <- samp_z(n = p, h = h, dist = "normal")
         beta <- beta + h^2 * grad_log_posterior(beta, X_mini, y_mini) / 2 + z
         beta.mat[i, ] <- beta
