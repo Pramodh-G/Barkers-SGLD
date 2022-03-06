@@ -1,17 +1,23 @@
 library("rmutil")
 
+print("DONT MIX UP SD AND VARIANCE. YOU ARE WARNED")
 samp_z <- function(n=1, h = 0.2, dof = 1, dist = "normal")
 {
-   ret <- rnorm(n)
+   ret <- NULL
+   if(is.matrix(h) && dim(h)[1] != 1 && dim(h)[2] != 1)
+   {
+       print(h)
+       stop("h is matrix, samp_z is written for scalar and vector h. take care. might produce wrong samples.")
+   }
    if(dist == "normal")
    {
        ret <- rnorm(n, sd = h)
    }
    else if (dist == "bim_normal") {
-      if(h > 1)
+      if(any(h > 1))
       {
-          print("choose h less than 1. mean is not defined.")
-          quit()
+          print(h)
+          stop("choose h less than 1. mean is not defined.")
       }
 
       ret <- rnorm(n, mean = sqrt(1 - h^2), sd = h)
@@ -22,6 +28,10 @@ samp_z <- function(n=1, h = 0.2, dof = 1, dist = "normal")
    }
    else if (dist == "laplace") {
        ret <- rlaplace(n, s = h)
+   }
+   else if (is.null(ret))
+   {
+      stop("something's wrong, I can feel it. ret is null")
    }
    return(ret)
 }

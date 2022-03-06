@@ -4,24 +4,40 @@ source("utils/arrhythmia_utils.R")
 set.seed(42)
 
 N <- 1e4
+# for functions involving prior_sig, please take a look at arrhytmia_utils.R
+# This was set to 5 at the behest of the authors of the paper.
 prior_sig <- 5
 
 # Barker methods
-#  pilot_result <- barker_aryt(y, X, N = N, h = 1.1e-1, dist = "normal")
+# pilot_result <- barker_aryt(y, X, N = N, h = 1e-1, dist = "normal")
 # accept_barker <- pilot_result$accept
 # print(accept_barker)
 # pre_sd <- sqrt(diag(cov(pilot_result$chain)))
+# print(pre_sd)
+
 # result <- barker_aryt(y, X, N = N, h = 2e-1 * pre_sd, dist = "normal")
 # chain_barker <- result$chain
 # accept_barker <- result$accept
 # print(accept_barker)
-# chain_sgbd <- sgbd_aryt(y, X, N = N, h = 5e-1 * pre_sd, dist = "normal")
 
+# chain_sgbd <- sgbd_aryt(y, X, N = N, h = 1 * pre_sd, dist = "normal")
+
+# result <- barker_adap_aryt(y, X, N = N, dist = "normal")
+# plot(result$lambdas)
+# chain_ad_barker <- result$chain
+# accept_ad_barker <- result$accept
+# mu_ad_barker <- result$mu
+# sig_ad_barker <- result$sig
+# lambda_ad_barker <- result$lambda
+# print(accept_ad_barker)
+# print(mu_ad_barker)
+# print(sig_ad_barker)
+# print(lambda_ad_barker)
 
 # Langevin methods
-# pilot <- sgld_aryt(y, X, N = N, h = 0.5, dist = "normal")
+#  pilot <- sgld_aryt(y, X, N = N, h = 0.5, dist = "normal")
 # pre_sd <- sqrt(diag(cov(pilot)))
-# chain_sgld <- sgld_aryt(y, X, N = 1e4, h = 0.1 * pre_sd, dist = "normal")
+# chain_sgld <- sgld_aryt(y, X, N = 1e4, h = 1 * pre_sd, dist = "normal")
 
 # result <- mala_aryt(y, X, N = 1e4, h = 0.1 * pre_sd)
 # chain_mala <- result$chain
@@ -29,7 +45,7 @@ prior_sig <- 5
 # print(accept_mala)
 
 # MH Methods
-# pilot_result <- mh_aryt(y, X, N = N, h = 7e-2, dist = "normal")
+# pilot_result <- mh_aryt(y, X, N = N, h = 7.4e-2, dist = "normal")
 # accept_mh <- pilot_result$accept
 # print(accept_mh)
 # pre_sd <- sqrt(diag(cov(pilot_result$chain)))
@@ -39,9 +55,8 @@ prior_sig <- 5
 # print(accept_mh)
 
 # Load presaved MH
-chain_mh_load <- readRDS("variables/aryt-mh.rds")
-
-chain <- chain_barker
+chain_ad_barker_load <- readRDS("variables/aryt-barker.rds")
+chain <- chain_ad_barker
 
 nplot <- 10
 plot.ts(chain[, 1:nplot])
@@ -55,6 +70,5 @@ for (i in 1:nplot)
 
 for (i in 1:nplot)
 {
-    plot(density(chain[, i]), main = paste("density for component ", i))
-    lines(density(chain_mh_load[, i]), main = paste("density for component ", i, col = "blue"))
+    plot(density(chain[, i]), col = "blue")
 }

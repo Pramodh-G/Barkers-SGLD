@@ -24,7 +24,113 @@ gradient_step <- function(beta, X, y, h)
     beta + h^2 * grad_log_posterior(beta, X, y) / 2
 }
 
+gamma <- function(iteration)
+{
+    return((iteration)^-0.6)
+}
+
+upd_lambda <- function(curr_lambda, iteration, alpha, alpha_opt)
+{
+    # note alpha opt is optimal acceptance rate, 0.574 for gradient based methods, and 0.234 for MH.
+    # alpha is current acceptance rate.
+    log_lambda <- log(curr_lambda) + gamma(iteration) * (alpha - alpha_opt)
+    return(exp(log_lambda))
+}
+
+upd_mu <- function(curr_mu, iteration, x_next)
+{
+    # x_next is basically X_{i + 1}, where i is current teration.
+    updated_mu <- curr_mu + gamma(iteration) * (x_next - curr_mu)
+    return(updated_mu)
+}
+
+upd_diag_sigma <- function(curr_sigma, iteration, curr_mu, x_next)
+{
+    # note the update step is actually sigma_new = sigma_old + gamma * (outer_product(X - mu, X - mu) - sigma_old)
+    # but here, we consider only diagonal sigma,so the outer product reduces to a simple element wise square.
+    # we take the diagonal entries of the outer product only. This is also inline with the original
+    # barkers proposal paper.(refer to page 17, first line)
+    vec <- as.numeric(x_next - curr_mu)
+    delta <- gamma(iteration) * ((vec)^2 - curr_sigma)
+    updated_sigma <- curr_sigma + delta
+    if(!is.numeric(updated_sigma))
+    {
+        print(updated_sigma)
+        stop("not a numeric sigma.")
+    }
+    return(updated_sigma)
+}
+
 ######### Barker
+barker_adap_aryt <- function(y, X, N = 1e3, dist = "normal")
+{
+    p <- dim(X)[2]
+    alpha_opt <- 0.574
+
+    # initalization of beta. note that glm was throwing a NA value due to small data available.
+    foo <- glm(y ~ X - 1, family = binomial("logit"))$coef
+    beta <- as.matrix(foo, ncol = 1)
+    col_na <- which(is.na(beta))
+    beta[col_na] <- colMeans(X)[col_na]
+
+
+    beta.mat <- matrix(0, nrow = N, ncol = p)
+    # sigs <- matrix(0, nrow = N, ncol = p)
+    # mus <- matrix(0, nrow = N, ncol = p)
+    # alphas <- numeric(N)
+    # lambdas <- numeric(N)
+    #mu_inital
+    mu <- rep(0, p)
+    # sigma initial
+    sig <- rep(0.1, p)
+    #scale initial - refer to original barker's paper, page 17, line before section 6.2
+    lambda <- (2.4 ^ 2) / (p ^ (1 / 3))
+    beta.mat[1, ] <- as.numeric(beta)
+    accept <- 0
+
+    for (i in 2:N)
+    {
+
+        grad_beta <- grad_log_posterior(beta, X, y)
+
+        # sample diagonally!
+        if(!is.numeric(lambda * sig)) {stop("this is a full matrix, not numeric.")}
+        z <- samp_z(n = p, h = sqrt(lambda * sig), dist = dist)
+        prob_invert <- 1 / (1 + exp(-z * grad_beta))
+        inv_or_not <- (runif(p) < prob_invert)
+        b <- 2 * inv_or_not - 1
+        prop <- beta + z * b
+
+        grad_prop <- grad_log_posterior(prop, X, y)
+        log_alpha <- log_posterior(prop, X, y)
+        log_alpha <- log_alpha - log_posterior(beta, X, y)
+        delta1 <- c(-grad_prop * (beta - prop))
+        delta2 <- c(-grad_beta * (prop - beta))
+        #log-sum-exp trick for stability.
+        log_alpha <- log_alpha + sum(-(pmax(delta1, 0) + log1p(exp(-abs(delta1)))) + (pmax(delta2, 0) + log1p(exp(-abs(delta2)))))
+
+        if (log(runif(1)) < log_alpha)
+        {
+            beta <- prop
+            accept <- accept + 1
+        }
+
+        alpha <- min(1, exp(log_alpha))
+        lambda <- upd_lambda(lambda, i, alpha, alpha_opt)
+        mu <- upd_mu(mu, i, beta)
+        sig <- upd_diag_sigma(sig, i, mu, beta)
+
+        beta.mat[i, ] <- beta
+        # sigs[i, ] <- sig
+        # mus[i, ] <- mu
+        # alphas[i] <- alpha
+        # lambdas[i] <- lambda
+    }
+    # ret <- list(chain = beta.mat, accept = accept / N, sigs = sigs, mus = mus, lambdas = lambdas, alphas = alphas)
+    ret <- list(chain = beta.mat, accept = accept/N, mu = mu, sig = sig, lambda = lambda)
+    return(ret)
+}
+
 barker_aryt <- function(y, X, N = 1e3, h = 0.6, dist = "normal")
 {
     p <- dim(X)[2]
@@ -43,14 +149,24 @@ barker_aryt <- function(y, X, N = 1e3, h = 0.6, dist = "normal")
         grad_beta <- grad_log_posterior(beta, X, y)
 
         z <- samp_z(n = p, h = h, dist = dist)
+
         prob_invert <- 1 / (1 + exp(-z * grad_beta))
         inv_or_not <- (runif(p) < prob_invert)
         b <- 2 * inv_or_not - 1
+        if(i %% 1000 == 0)
+        {
+            print(z)
+            print(b)
+        }
         prop <- beta + z * b
 
         grad_prop <- grad_log_posterior(prop, X, y)
-
-        log_alpha <- log_posterior(prop, X, y) - log_posterior(beta, X, y) - sum(log1p(exp( grad_prop * (prop - beta) ))) + sum(log1p(exp( grad_beta * (beta - prop) )))
+        log_alpha <- log_posterior(prop, X, y)
+        log_alpha <- log_alpha - log_posterior(beta, X, y)
+        delta1 <- c(-grad_prop * (beta - prop))
+        delta2 <- c(-grad_beta * (prop - beta))
+        #log-sum-exp trick for stability.
+        log_alpha <- log_alpha + sum(-(pmax(delta1, 0) + log1p(exp(-abs(delta1)))) + (pmax(delta2, 0) + log1p(exp(-abs(delta2)))))
 
         if (log(runif(1)) < log_alpha)
         {

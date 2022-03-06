@@ -13,6 +13,45 @@ grad_log_norm <- function(x, mu = 0, sd = 1)
 }
 
 ######### BARKER ###################
+barker_adap_normal <- function(N = 1e3, mu = 0, sd = 1, dist = "normal")
+{
+    samples <- numeric(N)
+    samples[1] <- 4.0
+    accept <- 0
+
+    lambda <- (2.4^2)
+    mu_adap <- 0
+    sigma_adap <- 1
+
+    for (i in 2:N) {
+        x <- samples[i - 1]
+        z <- samp_z(n = 1, h = lambda * sigma_adap, dist = dist)
+        p <- 1 / (1 + exp(-z * grad_log_norm(x, mu = mu, sd = sd)))
+        b <- -1
+        if(runif(1) < p)
+        {
+            b <- 1
+        }
+        prop <- x + b * z
+
+        log_alpha <- log_norm(prop, mu, sd) - log_norm(x, mu, sd) - log1p(exp( (prop - x) * grad_log_norm(prop, mu = mu, sd = sd) )) + log1p(exp( (x - prop) * grad_log_norm(x, mu =mu, sd =sd) ))
+        if(log(runif(1)) < log_alpha)
+        {
+            samples[i] <- prop
+            accept <- accept + 1
+        }
+        else
+        {
+            samples[i] <- x
+        }
+        gamma <- (i^(-0.6))
+        lambda <- exp(log(lambda) + gamma * (min(1, exp(log_alpha)) - 0.44))
+        sigma_adap <- sigma_adap + gamma * ((samples[i] - mu_adap)^2 - sigma_adap)
+        mu_adap <- mu_adap + gamma * (samples[i] - mu_adap)
+    }
+    ret <- list(chain = samples, accept = accept / N, mu = mu_adap, sig = sigma_adap, lambda = lambda)
+    return(ret)
+}
 # dist can be "normal" or "bim_normal"
 barker_normal <- function(N = 1e3, h = 0.2, mu = 0, sd = 1, dist = "normal")
 {
