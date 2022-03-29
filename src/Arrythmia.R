@@ -4,7 +4,7 @@ source("utils/arrhythmia_utils.R")
 set.seed(42)
 nplot <- sample(1:p, 6)
 
-N <- 1e4
+N <- 1e3
 # for functions involving prior_sig, please take a look at arrhytmia_utils.R
 # This was set to 5 at the behest of the authors of the paper.
 prior_sig <- 5
@@ -21,8 +21,10 @@ print(pre_sd)
 # accept_barker <- result$accept
 # print(accept_barker)
 
-common_h <- 4
+common_h <- 1e-1
 chain_sgbd <- sgbd_aryt(y, X, N = N, h = common_h * pre_sd, dist = "normal")
+chain_sgbd_grad <- prep_gradients(chain_sgbd, X, y)
+ksd(chain_sgbd, chain_sgbd_grad)
 
 # result <- barker_adap_aryt(y, X, N = N, dist = "normal")
 # plot(result$lambdas)
@@ -40,7 +42,9 @@ chain_sgbd <- sgbd_aryt(y, X, N = N, h = common_h * pre_sd, dist = "normal")
 # pilot <- sgld_aryt(y, X, N = N, h = 0.5, dist = "normal")
 # pre_sd <- sqrt(diag(cov(pilot)))
 chain_sgld <- sgld_aryt(y, X, N = N, h = common_h * pre_sd, dist = "normal")
-sum(which(is.na(chain_sgld)))
+chain_sgld_grad <- prep_gradients(chain_sgld, X, y)
+ksd(chain_sgld, chain_sgld_grad)
+# sum(which(is.na(chain_sgld)))
 
 # result <- mala_aryt(y, X, N = 1e4, h = 0.1 * pre_sd)
 # chain_mala <- result$chain
@@ -63,7 +67,7 @@ chain_ad_barker_load <- readRDS("variables/aryt-barker.rds")
 #choose dimensions at random
 # plot.ts(chain[, 1:nplot])
 
-pdf("plots/aryt_h_3e0.pdf")
+# pdf("plots/aryt_h_3e0.pdf")
 par(mfrow = c(3, 2))
 # for (i in 1:nplot)
 # {
@@ -78,4 +82,4 @@ for (i in nplot)
         fill = c("black","green","red"), title = "Legend")
 }
 
-dev.off()
+# dev.off()

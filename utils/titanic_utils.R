@@ -20,6 +20,19 @@ grad_log_posterior <- function(beta)
     -beta - colSums(temp) + colSums(X * denom)
 }
 
+prep_gradients <- function(samples)
+{
+    num_samples <- nrow(samples)
+    dimension <- ncol(samples)
+    samples_grad <- matrix(0, nrow = num_samples, ncol = dimension)
+
+    for (i in 1:num_samples)
+    {
+        samples_grad[i, ] <- grad_log_posterior(samples[i, ])
+    }
+    return(samples_grad)
+}
+
 gradient_step <- function(beta, h)
 {
     beta + h^2 * grad_log_posterior(beta) / 2
