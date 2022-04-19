@@ -25,7 +25,7 @@ x <- seq(-5 * sd + mu, 5 * sd + mu, 0.1)
 # print(sig_barker)
 # print(lambda_barker)
 
-chain_sgbd <- sgbd_normal(N = N, h = 0.5, mu = mu, sd = sd, dist = "normal")
+# chain_sgbd <- sgbd_normal(N = N, h = 0.5, mu = mu, sd = sd, dist = "normal")
 
 # Langevin Methods
 # result <- mala_normal(N = N, h = 3.4, mu = mu, sd = sd, dist = "normal")
@@ -33,14 +33,14 @@ chain_sgbd <- sgbd_normal(N = N, h = 0.5, mu = mu, sd = sd, dist = "normal")
 # accept_mala <- result$accept
 # print(accept_mala)
 
-chain_sgld <- sgld_normal(N = N, h = 2, mu = mu, sd = sd, dist = "normal")
+# chain_sgld <- sgld_normal(N = N, h = 2, mu = mu, sd = sd, dist = "normal")
 
 # chain_sgld <- chain_sgbd
 # acf(chain_sgld)
 # plot.ts(chain_sgld)
-plot(x, dnorm(x, mean = mu, sd = sd), col = "red", "l")
-lines(density(chain_sgld), col = "blue")
-lines(density(chain_sgbd), col = "green")
+# plot(x, dnorm(x, mean = mu, sd = sd), col = "red", "l")
+# lines(density(chain_sgld), col = "blue")
+# lines(density(chain_sgbd), col = "green")
 
 #MH Methods
 # result <- mh_normal(N = N, h = 2.5, mu = mu, sd = sd, dist = "normal")
@@ -49,7 +49,7 @@ lines(density(chain_sgbd), col = "green")
 # print(accept_mh)
 
 # Load Pre saved chain, mean = 0, sd = 1
-chain_mh_load <- readRDS("variables/normal-mh.rds")
+# chain_mh_load <- readRDS("variables/normal-mh.rds")
 
 #--------------------- generating figure for multiple h.
 
@@ -79,11 +79,18 @@ for (h in hs) {
 
 for (i in 1:5) {
    chain_sgld <- chain_sglds[[i]]
-   dim(chain_sgld) <- c(1, length(chain_sgld))
    chain_sgbd <- chain_sgbds[[i]]
-   dim(chain_sgbd) <- c(1, length(chain_sgbd))
-   ksd_sglds[i] <- ksd(chain_sgld, grad_log_norm(chain_sgld))
-   ksd_sgbds[i] <- ksd(chain_sgbd, grad_log_norm(chain_sgbd))
+   grad_sgbd <- grad_log_norm(chain_sgbd)
+   grad_sgld <- grad_log_norm(chain_sgld)
+   dim(chain_sgld) <- c(length(chain_sgld), 1)
+   dim(chain_sgbd) <- c(length(chain_sgbd), 1)
+   dim(grad_sgbd) <- c(length(grad_sgbd), 1)
+   dim(grad_sgld) <- c(length(grad_sgld), 1)
+   print(i)
+   print("doing for sgld")
+   ksd_sglds[i] <- ksd(chain_sgld, grad_sgld)
+   print("doing for sgbd")
+   ksd_sgbds[i] <- ksd(chain_sgbd, grad_sgbd)
 }
 
 # par(mfrow = c(1, 5))
@@ -95,8 +102,8 @@ for (i in 1:5) {
 #     legend(x = "top", c("normal density", "sgbd", "sgld"), fill = c("red", "green", "blue"))
 # }
 
-png("plots/normal-ksd-h.png")
-plot(x = hs, y = log(as.numeric(ksd_sglds), base = 10), "b", col="red", xlab="Step Size", ylab = "Log Kernel Stein Density")
-lines(x = hs, y = log(as.numeric(ksd_sgbds), base = 10), col = "green","b")
-legend(x = "topleft", c("SGBD", "SGLD"), fill = c("green", "red"))
-dev.off()
+# png("plots/normal-ksd-h.png")
+# plot(x = hs, y = log(as.numeric(ksd_sglds), base = 10), "b", col="red", xlab="Step Size", ylab = "Log Kernel Stein Density")
+# lines(x = hs, y = log(as.numeric(ksd_sgbds), base = 10), col = "green","b")
+# legend(x = "topleft", c("SGBD", "SGLD"), fill = c("green", "red"))
+# dev.off()
